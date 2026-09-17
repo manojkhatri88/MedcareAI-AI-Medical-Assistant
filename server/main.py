@@ -23,7 +23,12 @@ app.add_middleware(
 app.middleware("http")(catch_exception_middleware)
 
 # routers
-
+@app.get("/")
+def root():
+    return {
+        "status": "success",
+        "message": "MedCareAI API is running"
+    }
 # 1. upload pdfs documents
 app.include_router(upload_router)
 # 2. asking query

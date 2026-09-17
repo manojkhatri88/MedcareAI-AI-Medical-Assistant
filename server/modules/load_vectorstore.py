@@ -13,7 +13,7 @@ load_dotenv()
 GOOGLE_API_KEY=os.getenv("GOOGLE_API_KEY")
 PINECONE_API_KEY=os.getenv("PINECONE_API_KEY")
 PINECONE_ENV="us-east-1"
-PINECONE_INDEX_NAME="medicalindex"
+PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "medicalindex")
 
 os.environ["GOOGLE_API_KEY"]=GOOGLE_API_KEY
 
@@ -63,15 +63,19 @@ def load_vectorstore(uploaded_files):
         chunks = splitter.split_documents(documents)
 
         texts = [chunk.page_content for chunk in chunks]
-        metadatas = [chunk.metadata for chunk in chunks]
+        metadatas = [
+            {
+                **chunk.metadata,
+                "text":chunk.page_content
+            }   
+              for chunk in chunks]
         ids = [f"{Path(file_path).stem}-{i}" for i in range(len(chunks))]
 
         print(f"🔍 Embedding {len(texts)} chunks...")
         embeddings = embed_model.embed_documents(texts)
 
         print("📤 Uploading to Pinecone...")
-        with tqdm(total=len(embeddings), desc="Upserting to Pinecone") as progress:
-            index.upsert(vectors=zip(ids, embeddings, metadatas))
-            progress.update(len(embeddings))
+        vectors = list(zip(ids, embeddings, metadatas))
+        index.upsert(vectors=vectors)
 
         print(f"✅ Upload complete for {file_path}")
